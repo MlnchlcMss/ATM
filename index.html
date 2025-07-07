@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple ATM System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .atm-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .balance-display {
+            font-size: 24px;
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .check-balance {
+            background-color: #3498db;
+            color: white;
+        }
+        .deposit {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .withdraw {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .receipt-btn { /* Renamed class to avoid conflict with receipt-container */
+            background-color: #f39c12;
+            color: white;
+        }
+        .action-panel {
+            margin-top: 20px;
+            display: none;
+        }
+        input {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .receipt-container {
+            margin-top: 20px;
+            display: none;
+            border: 1px dashed #ccc;
+            padding: 10px;
+            background-color: white;
+        }
+        .receipt-content {
+            font-family: monospace;
+            white-space: pre;
+            padding-bottom: 10px;
+        }
+        .print-button {
+            background-color: #6c757d;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        /* Styles for printing */
+        @media print {
+            body * {
+                visibility: hidden; /* Hide everything by default */
+            }
+            .receipt-container, .receipt-container * {
+                visibility: visible; /* Make receipt container and its children visible */
+            }
+            .receipt-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%; /* Make the receipt take full width on print */
+                margin: 0;
+                padding: 20px;
+                box-shadow: none;
+                border: none; /* Remove border for print */
+                background-color: white; /* Ensure background is white for printing */
+            }
+            .print-button {
+                display: none; /* Hide the print button when actually printing */
+            }
+            /* You might want to adjust font sizes or margins specifically for print */
+            .receipt-content {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="atm-container">
+        <h1>ATM Machine</h1>
+        
+        <div class="balance-display">
+            Balance: ₽<span id="currentBalance">------</span>
+        </div>
+        
+        <div class="button-group">
+            <button class="check-balance" onclick="showBalance()">Check Balance</button>
+            <button class="deposit" onclick="showDepositPanel()">Deposit</button>
+            <button class="withdraw" onclick="showWithdrawPanel()">Withdraw</button>
+            <button class="receipt-btn" onclick="showReceiptContainer()">Print Receipt</button>
+        </div>
+        
+        <div id="depositPanel" class="action-panel">
+            <h3>Deposit Amount</h3>
+            <input type="number" id="depositAmount" placeholder="Enter amount to deposit" min="0" step="0.01">
+            <button onclick="deposit()">Confirm Deposit</button>
+            <div id="depositMessage" class="message"></div>
+        </div>
+        
+        <div id="withdrawPanel" class="action-panel">
+            <h3>Withdraw Amount</h3>
+            <input type="number" id="withdrawAmount" placeholder="Enter amount to withdraw" min="0" step="0.01">
+            <button onclick="withdraw()">Confirm Withdraw</button>
+            <div id="withdrawMessage" class="message"></div>
+        </div>
+        
+        <div id="receiptContainer" class="receipt-container">
+            <div id="receiptContent" class="receipt-content"></div>
+            <button class="print-button" onclick="window.print()">Print</button>
+        </div>
+    </div>
+ 
+    <script>
+        let balance = 0.00;
+        let transactionHistory = [];
+        let flag = 1;
+        
+        function updateBalanceDisplay() {
+            document.getElementById('currentBalance').textContent = balance.toFixed(2);
+        }
+
+        function hideBalanceDisplay(){
+            document.getElementById('currentBalance').textContent = "------";
+        }
+        
+        function showBalance() {
+            if(flag == 1){
+                updateBalanceDisplay();
+                flag = 2;
+            } else {
+                hideBalanceDisplay();
+                flag = 1;
+            } 
+            hideAllPanels(); // Hide other panels when showing balance
+            document.getElementById('receiptContainer').style.display = 'none'; // Hide receipt
+        }
+        
+        function showDepositPanel() {
+            hideAllPanels();
+            document.getElementById('depositPanel').style.display = 'block';
+            document.getElementById('depositAmount').value = '';
+            document.getElementById('depositMessage').style.display = 'none';
+            document.getElementById('receiptContainer').style.display = 'none'; // Hide receipt
+        }
+        
+        function showWithdrawPanel() {
+            hideAllPanels();
+            document.getElementById('withdrawPanel').style.display = 'block';
+            document.getElementById('withdrawAmount').value = '';
+            document.getElementById('withdrawMessage').style.display = 'none';
+            document.getElementById('receiptContainer').style.display = 'none'; // Hide receipt
+        }
+        
+        function hideAllPanels() {
+            document.getElementById('depositPanel').style.display = 'none';
+            document.getElementById('withdrawPanel').style.display = 'none';
+        }
+        
+        function deposit() {
+            const amountInput = document.getElementById('depositAmount');
+            const amount = parseFloat(amountInput.value);
+            const messageElement = document.getElementById('depositMessage');
+            
+            if (isNaN(amount) || amount <= 0) {
+                messageElement.textContent = 'Please enter a valid positive amount';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            balance += amount;
+            updateBalanceDisplay();
+            
+            transactionHistory.push({
+                type: 'Deposit',
+                amount: amount,
+                date: new Date()
+            });
+            
+            messageElement.textContent = `Deposited ₽${amount.toFixed(2)} successfully.`;
+            messageElement.className = 'message success';
+            messageElement.style.display = 'block';
+            
+            amountInput.value = '';
+        }
+        
+        function withdraw() {
+            const amountInput = document.getElementById('withdrawAmount');
+            const amount = parseFloat(amountInput.value);
+            const messageElement = document.getElementById('withdrawMessage');
+            
+            if (isNaN(amount) || amount <= 0) {
+                messageElement.textContent = 'Please enter a valid positive amount';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            if (amount > balance) {
+                messageElement.textContent = 'Insufficient funds for this withdrawal';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            balance -= amount;
+            updateBalanceDisplay();
+            
+            transactionHistory.push({
+                type: 'Withdrawal',
+                amount: amount,
+                date: new Date()
+            });
+            
+            messageElement.textContent = `Withdrew ₽${amount.toFixed(2)} successfully.`;
+            messageElement.className = 'message success';
+            messageElement.style.display = 'block';
+            
+            amountInput.value = '';
+        }
+        
+        function showReceiptContainer() {
+            hideAllPanels();
+            const receiptContainer = document.getElementById('receiptContainer');
+            const receiptContentElement = document.getElementById('receiptContent');
+            let receiptText = '=== ATM RECEIPT ===\n\n';
+            
+            receiptText += `Current Balance: ₽${balance.toFixed(2)}\n\n`;
+            receiptText += 'Recent Transactions:\n';
+            
+            if (transactionHistory.length === 0) {
+                receiptText += 'No transactions yet\n';
+            } else {
+                // Get the last 3 transactions, reversed to show newest first
+                const recentTransactions = transactionHistory.slice(-3).reverse();
+                for (const transaction of recentTransactions) {
+                    const dateStr = transaction.date.toLocaleString();
+                    receiptText += `${dateStr} - ${transaction.type}: ₽${transaction.amount.toFixed(2)}\n`;
+                }
+            }
+            
+            receiptText += '\nThank you for banking with us!';
+            
+            receiptContentElement.textContent = receiptText;
+            receiptContainer.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
